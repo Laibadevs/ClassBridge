@@ -48,9 +48,11 @@ def verify_csrf(
     cb_csrf: str | None = Cookie(default=None, alias=CSRF_COOKIE),
 ) -> None:
     """Double-submit CSRF check for state-changing requests made with an
-    existing session cookie (e.g. logout). The session cookie is SameSite=Lax,
-    which already blocks cross-site POSTs from being sent with credentials in
-    most browsers — this is defense in depth on top of that."""
+    existing session cookie (e.g. logout). This is the primary CSRF defense —
+    the session cookie is SameSite=Lax only in local dev; in production it's
+    SameSite=None (required for the frontend/backend's separate-host
+    deployment, see auth.py::_set_auth_cookies), so it can't be relied on as
+    a SameSite-based defense-in-depth there."""
     header_value = request.headers.get(CSRF_HEADER)
     if not csrf_tokens_match(cb_csrf, header_value):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid or missing CSRF token.")

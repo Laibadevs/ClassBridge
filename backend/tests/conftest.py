@@ -5,6 +5,13 @@ os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-for-production")
 os.environ.setdefault("FRONTEND_URL", "http://localhost:3000")
 os.environ.setdefault("ENVIRONMENT", "development")
+# Pinned so the suite never depends on whatever real credentials happen to be
+# sitting in a developer's backend/.env (e.g. a real Gemini key or WhatsApp
+# token) — os.environ takes priority over .env file values, so this forces
+# every test onto the deterministic mock AI/WhatsApp providers regardless.
+os.environ.setdefault("AI_PROVIDER", "mock")
+os.environ.setdefault("WHATSAPP_ACCESS_TOKEN", "")
+os.environ.setdefault("WHATSAPP_PHONE_NUMBER_ID", "")
 
 import pytest
 from fastapi.testclient import TestClient

@@ -24,12 +24,22 @@ GENERIC_ERROR = "Something went wrong. Please try again."
 
 def _set_auth_cookies(response: Response, session_token: str) -> None:
     max_age = settings.SESSION_EXPIRE_MINUTES * 60
+    # Frontend and backend are deployed on different hosts (e.g. separate
+    # vercel.app subdomains, which count as different "sites" for cookie
+    # purposes, not just different origins) — a browser will only send a
+    # SameSite=Lax cookie back on top-level navigation, never on the
+    # fetch()-based API calls this app relies on. SameSite=None (which
+    # requires Secure) is the only setting that works for that real cross-
+    # site deployment shape; local dev (both on localhost, same site) stays
+    # on Lax since SameSite=None without HTTPS is rejected by browsers.
+    cross_site_cookies = settings.is_production
+    samesite = "none" if cross_site_cookies else "lax"
     response.set_cookie(
         key=SESSION_COOKIE,
         value=session_token,
         httponly=True,
         secure=settings.is_production,
-        samesite="lax",
+        samesite=samesite,
         max_age=max_age,
         path="/",
     )
@@ -40,7 +50,7 @@ def _set_auth_cookies(response: Response, session_token: str) -> None:
         value=generate_csrf_token(),
         httponly=False,
         secure=settings.is_production,
-        samesite="lax",
+        samesite=samesite,
         max_age=max_age,
         path="/",
     )
