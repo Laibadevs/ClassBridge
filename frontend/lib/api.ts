@@ -4,10 +4,18 @@
  * Thin fetch wrapper for the FastAPI backend. Every call sends
  * `credentials: 'include'` so the httpOnly session cookie rides along, and
  * attaches the CSRF header (double-submit pattern) on state-changing verbs.
- * Never store the backend URL or any secret in code — only via env var.
+ *
+ * Requests go to a relative /api/... path — same origin as this frontend —
+ * rather than the backend's own absolute URL. next.config.mjs proxies those
+ * paths to the real backend server-side. This matters once frontend and
+ * backend are deployed to separate hosts: a cookie the backend sets is only
+ * ever readable/sendable on the domain the browser thinks it talked to, so
+ * calling the backend directly from the browser would mean login "succeeds"
+ * but the resulting session cookie is scoped to a domain this app's own
+ * server-side auth check (middleware.ts) never sees. Proxying keeps every
+ * request same-origin from the browser's perspective, so the cookie ends up
+ * scoped to this frontend's own domain instead.
  */
-
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000';
 
 export class ApiError extends Error {
   status: number;
@@ -40,7 +48,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
     // safe for the browser's HTTP cache to reuse across calls to the same
     // URL (e.g. GET /api/teacher/students right after a POST that changed
     // it). middleware.ts already does the same for /api/auth/me.
-    res = await fetch(`${API_URL}${path}`, { ...init, method, headers, credentials: 'include', cache: 'no-store' });
+    res = await fetch(path, { ...init, method, headers, credentials: 'include', cache: 'no-store' });
   } catch {
     throw new ApiError('You appear to be offline. Please check your connection and try again.', 0);
   }
