@@ -1,0 +1,42 @@
+# dependencies
+/node_modules
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# editor / AI tool local state — never publish these
+.qoder/
+.claude/
+
+# python (backend also has its own .gitignore, kept here too as a safety net)
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.db
+.pytest_cache/
+
+# stray local logs / scratch scripts — never meant to be committed
+*.log
+scripts-tmp-*.ps1

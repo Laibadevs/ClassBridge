@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Primary headings: Playfair Display (editorial serif) */
+h1,
+h2 {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.015em;
+  font-weight: 700;
+}
+
+/* Subheadings & card titles: Cardo */
+h3,
+h4 {
+  font-family: var(--font-card), Georgia, serif;
+  letter-spacing: 0;
+  font-weight: 700;
+}
+
+::selection {
+  background-color: #DBEAFE;
+  color: #1E3A8A;
+}
+
+/* Users who've asked the OS for less motion skip the continuously-running
+   decorative animations (floating cards, shimmer) and land straight in the
+   revealed state instead of fading/sliding in on scroll. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.focus-ring {
+  @apply outline-none focus-visible:ring-2 focus-visible:ring-brand-blue focus-visible:ring-offset-2 focus-visible:ring-offset-surface;
+}
+
+@layer components {
+  /* Subtle blue->green brand gradient for emphasis words */
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-blue via-brand-blue to-brand-green bg-clip-text text-transparent;
+  }
+
+  /* Frosted glass surface for the navbar */
+  .glass {
+    @apply border-b border-white/40 bg-white/70 backdrop-blur-xl;
+  }
+
+  /* Soft decorative radial glow used behind hero / CTA */
+  .glow-field {
+    background-image:
+      radial-gradient(60% 55% at 15% 0%, rgba(37, 99, 235, 0.10) 0%, transparent 60%),
+      radial-gradient(55% 50% at 100% 20%, rgba(16, 185, 129, 0.10) 0%, transparent 55%);
+  }
+}
