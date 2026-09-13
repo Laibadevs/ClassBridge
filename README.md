@@ -29,10 +29,11 @@ strictly isolated by role.
 ## Project layout
 
 ```
-app/                Next.js pages (App Router)
-components/          React components (teacher/, parent/, shared/, ui/)
-lib/                 Frontend API clients and helpers
-middleware.ts        Route protection (teacher/parent isolation)
+frontend/
+  app/               Next.js pages (App Router)
+  components/        React components (teacher/, parent/, shared/, ui/)
+  lib/               Frontend API clients and helpers
+  middleware.ts      Route protection (teacher/parent isolation)
 
 backend/
   app/
@@ -81,13 +82,23 @@ pytest
 
 ### Frontend
 
-From the repository root:
-
 ```bash
+cd frontend
 npm install
 cp .env.example .env.local    # set NEXT_PUBLIC_API_URL if not the default
 npm run dev                   # runs on http://localhost:3000
 ```
+
+### Deploying
+
+- **Frontend** → [Vercel](https://vercel.com): import this repo, set the
+  project's **Root Directory** to `frontend`. Set `NEXT_PUBLIC_API_URL` to
+  your deployed backend's URL.
+- **Backend** → any host that runs a Python process (Render, Railway, etc.):
+  root directory `backend`, start command
+  `uvicorn app.main:app --host 0.0.0.0 --port $PORT`, run `alembic upgrade head`
+  on deploy, and set every variable from `backend/.env.example` with real
+  values. Set `FRONTEND_URL` to your deployed frontend's exact origin (CORS).
 
 ### WhatsApp integration
 
@@ -99,8 +110,8 @@ WhatsApp Business account and set the `WHATSAPP_*` variables in
 
 ## Environment variables
 
-Both `.env.example` (frontend, repo root) and `backend/.env.example`
-(backend) list every variable the app reads, with empty placeholders. Real
+Both `frontend/.env.example` and `backend/.env.example` list every
+variable the app reads, with empty placeholders. Real
 values belong only in `.env` / `.env.local`, which are git-ignored and must
 never be committed.
 
