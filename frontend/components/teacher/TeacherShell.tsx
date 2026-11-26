@@ -20,7 +20,7 @@ const navItems: AppNavItem[] = [
   { id: 'grades', label: 'Grades', icon: ClipboardIcon, href: '/teacher/grades' },
   { id: 'updates', label: 'Parent Updates', icon: MessageIcon, href: '/teacher/updates' },
   { id: 'announcements', label: 'Announcements', icon: BellIcon, href: '/teacher/announcements' },
-  { id: 'progress', label: 'Progress Reports', icon: BarChartIcon, href: '/teacher/progress' },
+  { id: 'progress', label: 'Progress', icon: BarChartIcon, href: '/teacher/progress' },
 ];
 
 const bottomItems: AppNavItem[] = [{ id: 'settings', label: 'Settings', icon: SettingsIcon }];

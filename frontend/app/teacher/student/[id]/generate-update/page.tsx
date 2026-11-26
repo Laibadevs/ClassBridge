@@ -4,7 +4,13 @@ import UpdateGenerator from '@/components/teacher/UpdateGenerator';
 import { requireRole } from '@/lib/auth/server';
 import { getTeacherStudentProfile } from '@/lib/teacher-data';
 
-export default async function GenerateParentUpdatePage({ params }: { params: { id: string } }) {
+export default async function GenerateParentUpdatePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { update?: string };
+}) {
   const user = await requireRole('teacher');
   const profile = await getTeacherStudentProfile(params.id);
   if (!profile) notFound();
@@ -14,6 +20,7 @@ export default async function GenerateParentUpdatePage({ params }: { params: { i
   return (
     <TeacherShell userName={user.name}>
       <UpdateGenerator
+        initialUpdateId={searchParams.update}
         student={{
           id: profile.student.id,
           name: profile.student.name,

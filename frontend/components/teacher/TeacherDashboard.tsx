@@ -13,6 +13,9 @@ import {
   PlusIcon,
   SparklesIcon,
   ChevronRightIcon,
+  CheckIcon,
+  ClockIcon,
+  UserIcon,
 } from '@/components/icons';
 import {
   attentionFrom,
@@ -50,6 +53,40 @@ function StatCard({ stat }: { stat: DashboardStat }) {
       <p className="mt-4 text-3xl font-bold tracking-tight text-ink">{stat.value}</p>
       <p className="mt-1 text-sm font-medium text-ink">{stat.label}</p>
       <p className="text-xs text-ink-muted">{stat.hint}</p>
+    </div>
+  );
+}
+
+function TodayAttendanceStrip({ today }: { today: TeacherDashboardStats['today_attendance'] | undefined }) {
+  const cards = [
+    { id: 'present', label: "Today's Present", value: today?.present ?? 0, icon: <CheckIcon className="h-5 w-5" />, tone: 'bg-emerald-50 text-brand-greenDark' },
+    { id: 'late', label: "Today's Late", value: today?.late ?? 0, icon: <ClockIcon className="h-5 w-5" />, tone: 'bg-amber-50 text-amber-600' },
+    { id: 'absent', label: "Today's Absent", value: today?.absent ?? 0, icon: <UserIcon className="h-5 w-5" />, tone: 'bg-slate-100 text-ink-muted' },
+    {
+      id: 'rate',
+      label: 'Attendance Rate',
+      value: today?.attendance_rate !== null && today?.attendance_rate !== undefined ? `${Math.round(today.attendance_rate)}%` : '—',
+      icon: <CalendarCheckIcon className="h-5 w-5" />,
+      tone: 'bg-blue-50 text-brand-blue',
+    },
+  ];
+  return (
+    <div className="mt-6">
+      <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-muted">Today&apos;s attendance</h2>
+      <div className="mt-3 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {cards.map((c) => (
+          <div key={c.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
+            <span className={`flex h-9 w-9 items-center justify-center rounded-lg ${c.tone}`}>{c.icon}</span>
+            <p className="mt-3 text-2xl font-bold tracking-tight text-ink">{c.value}</p>
+            <p className="text-xs font-medium text-ink-muted">{c.label}</p>
+          </div>
+        ))}
+      </div>
+      {today && today.total_students > 0 && (
+        <p className="mt-2 text-xs text-ink-muted">
+          {today.marked} of {today.total_students} students marked today
+        </p>
+      )}
     </div>
   );
 }
@@ -251,6 +288,8 @@ export default function TeacherDashboard({ userName }: { userName: string }) {
               <StatCard key={stat.id} stat={stat} />
             ))}
           </div>
+
+          <TodayAttendanceStrip today={stats?.today_attendance} />
 
           {/* Content grid */}
           <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-3">

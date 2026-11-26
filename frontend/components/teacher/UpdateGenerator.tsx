@@ -3,16 +3,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
+  AlertIcon,
   ArrowRightIcon,
   CalendarCheckIcon,
   CheckIcon,
   ChevronRightIcon,
   EditIcon,
   GlobeIcon,
+  LightbulbIcon,
   LoaderIcon,
   MessageIcon,
   NoteIcon,
+  PlusIcon,
   SparklesIcon,
+  TrashIcon,
 } from '@/components/icons';
 import { ApiError } from '@/lib/api';
 import { teacherApi, type TeacherGrade, type TeacherNote } from '@/lib/teacher-api';
@@ -23,8 +27,12 @@ import {
   type ParentUpdateDelivery,
 } from '@/lib/parent-update-api';
 import TextToSpeechButton, { type SpeechLanguage } from '@/components/parent/TextToSpeechButton';
+import PipelineExplainer from './PipelineExplainer';
+import UpdateAudioPanel from './UpdateAudioPanel';
 
 interface UpdateGeneratorProps {
+  /** Opens this specific update (from the Parent Updates list) instead of the newest one. */
+  initialUpdateId?: string;
   student: { id: string; name: string; initials: string; grade: string; section: string };
 }
 
@@ -98,6 +106,74 @@ function ResultSection({
   );
 }
 
+/** "What Can I Do at Home?" — 2-4 practical actions grounded in the same
+ * classroom data as the update text, shown as a checklist and editable
+ * as a simple list (not free text) so it stays a set of discrete actions. */
+function HomeActionsSection({
+  actions,
+  editing,
+  onChange,
+}: {
+  actions: string[];
+  editing: boolean;
+  onChange: (actions: string[]) => void;
+}) {
+  if (!editing && actions.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
+      <div className="mb-3 flex items-center gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-green text-white">
+          <LightbulbIcon className="h-4 w-4" />
+        </span>
+        <h4 className="flex-1 font-semibold text-brand-greenDark">What Can I Do at Home?</h4>
+      </div>
+
+      {editing ? (
+        <div className="space-y-2.5">
+          {actions.map((action, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                type="text"
+                value={action}
+                onChange={(e) => onChange(actions.map((a, idx) => (idx === i ? e.target.value : a)))}
+                aria-label={`Home action ${i + 1}`}
+                className={fieldClass}
+              />
+              <button
+                type="button"
+                onClick={() => onChange(actions.filter((_, idx) => idx !== i))}
+                aria-label={`Remove home action ${i + 1}`}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-muted transition-colors hover:bg-red-50 hover:text-red-600 focus-ring"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+          {actions.length < 6 && (
+            <button
+              type="button"
+              onClick={() => onChange([...actions, ''])}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-1.5 text-xs font-semibold text-ink-muted transition-colors hover:border-brand-blue hover:text-brand-blue focus-ring"
+            >
+              <PlusIcon className="h-3.5 w-3.5" /> Add action
+            </button>
+          )}
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {actions.map((action, i) => (
+            <li key={i} className="flex items-start gap-2.5 text-[0.97rem] leading-relaxed text-ink">
+              <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-green" />
+              <span>{action}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function Skeleton() {
   const bar =
     'h-3.5 rounded-full bg-gradient-to-r from-slate-100 via-blue-50 to-slate-100 bg-[length:200%_100%] animate-shimmer';
@@ -116,7 +192,7 @@ function Skeleton() {
   );
 }
 
-export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
+export default function UpdateGenerator({ student, initialUpdateId }: UpdateGeneratorProps) {
   // Real classroom facts — read-only here. This is what the AI actually
   // reads server-side; nothing typed on this page feeds the generator.
   const [attendanceRate, setAttendanceRate] = useState<number | null>(null);
@@ -137,17 +213,22 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
   const [whatsappDelivery, setWhatsappDelivery] = useState<ParentUpdateDelivery | null>(null);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
   const [whatsappError, setWhatsappError] = useState<string | null>(null);
+  // Read fresh on every load so a just-changed opt-in/number setting is
+  // reflected without needing a full page reload.
+  const [whatsappNumber, setWhatsappNumber] = useState<string | null>(null);
+  const [whatsappOptIn, setWhatsappOptIn] = useState(false);
 
   const firstName = student.name.split(' ')[0];
 
   const loadContext = useCallback(async () => {
     setContextLoading(true);
     try {
-      const [attendance, gradeRows, noteRows, updates] = await Promise.all([
+      const [attendance, gradeRows, noteRows, updates, studentRecord] = await Promise.all([
         teacherApi.listAttendance(student.id),
         teacherApi.listGrades(student.id),
         teacherApi.listNotes(student.id),
         parentUpdateApi.list(student.id),
+        teacherApi.getStudent(student.id),
       ]);
       const total = attendance.length;
       setAttendanceRate(
@@ -156,12 +237,20 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
       setGrades(gradeRows);
       setNotes(noteRows);
       setHistory(updates);
+      setWhatsappNumber(studentRecord.whatsapp_number);
+      setWhatsappOptIn(studentRecord.whatsapp_opt_in);
+      // Restores the most recent update (and its WhatsApp status) on load —
+      // e.g. after a refresh — rather than resetting to an empty panel that
+      // hides an already-approved/sent update until the teacher clicks it.
+      if (updates.length > 0) {
+        viewHistoryEntry(updates.find((u) => u.id === initialUpdateId) ?? updates[0]);
+      }
     } catch {
       // Read-only context is best-effort; generation still works without it.
     } finally {
       setContextLoading(false);
     }
-  }, [student.id]);
+  }, [student.id, initialUpdateId]);
 
   useEffect(() => {
     loadContext();
@@ -181,6 +270,33 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
   }, [grades]);
 
   const hasAnyData = attendanceRate !== null || grades.length > 0 || notes.length > 0;
+
+  /** Restores a past update (draft/approved/sent) from history into the main
+   * review panel — including its WhatsApp delivery status — so a page
+   * refresh never loses visibility into what was already approved/sent. */
+  async function viewHistoryEntry(u: ParentUpdate) {
+    setGenerated({
+      english_text: u.english_text,
+      roman_urdu_text: u.roman_urdu_text,
+      urdu_text: u.urdu_text ?? '',
+      home_actions: u.home_actions,
+    });
+    setSavedUpdate(u);
+    setPhase('saved');
+    setEditing(false);
+    setConfirmApprove(false);
+    setError(null);
+    setWhatsappError(null);
+    setWhatsappDelivery(null);
+    if (u.status !== 'draft') {
+      try {
+        const deliveries = await parentUpdateApi.listWhatsAppDeliveries(u.id);
+        setWhatsappDelivery(deliveries[0] ?? null);
+      } catch {
+        // Best-effort — the approve/send status still shows from `u.status`.
+      }
+    }
+  }
 
   async function generate() {
     setPhase('generating');
@@ -209,6 +325,7 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
         english_text: generated.english_text,
         roman_urdu_text: generated.roman_urdu_text,
         urdu_text: generated.urdu_text,
+        home_actions: generated.home_actions,
         status: 'draft',
       });
       setSavedUpdate(saved);
@@ -271,6 +388,15 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
 
   const busy = phase === 'generating' || phase === 'saving';
 
+  // Mirrors the backend's own gate (MissingWhatsAppNumberError /
+  // WhatsAppNotOptedInError) so the teacher sees why Send isn't offered
+  // before ever clicking it, not just after a rejected request.
+  const sendBlockedReason = !whatsappNumber
+    ? 'Please add a valid parent WhatsApp number before sending this update.'
+    : !whatsappOptIn
+      ? 'Please enable WhatsApp messaging consent for this student before sending.'
+      : null;
+
   return (
     <div>
       {/* Breadcrumb */}
@@ -311,6 +437,8 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
           supportive message parents can understand and act on.
         </p>
       </header>
+
+      <PipelineExplainer />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.08fr)] xl:gap-8">
         {/* ------------------------------ LEFT ------------------------------ */}
@@ -529,6 +657,11 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
                     onChange={(v) => setGenerated({ ...generated, urdu_text: v })}
                     speechLanguage="urdu"
                   />
+                  <HomeActionsSection
+                    actions={generated.home_actions}
+                    editing={editing}
+                    onChange={(home_actions) => setGenerated({ ...generated, home_actions })}
+                  />
                 </div>
 
                 {weakestGrade && (
@@ -624,16 +757,34 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
                   )}
 
                   {savedUpdate && savedUpdate.status !== 'draft' && (
+                    <UpdateAudioPanel updateId={savedUpdate.id} version={savedUpdate.updated_at} />
+                  )}
+
+                  {savedUpdate && savedUpdate.status !== 'draft' && sendBlockedReason && (
+                    <div className="flex items-start gap-2 border-t border-slate-100 pt-4 text-xs text-ink-muted">
+                      <AlertIcon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      {sendBlockedReason}
+                    </div>
+                  )}
+                  {savedUpdate && savedUpdate.status !== 'draft' && !sendBlockedReason && (
                     <div className="flex flex-wrap items-center gap-3 border-t border-slate-100 pt-4">
                       {savedUpdate.status === 'sent' ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-green/15 px-3 py-1.5 text-xs font-semibold text-brand-greenDark">
-                          <CheckIcon className="h-3.5 w-3.5" /> Sent via WhatsApp
+                          <CheckIcon className="h-3.5 w-3.5" />
+                          {whatsappDelivery?.status === 'read'
+                            ? 'WhatsApp: Read'
+                            : whatsappDelivery?.status === 'delivered'
+                              ? 'WhatsApp: Delivered'
+                              : 'WhatsApp: Sent'}
                         </span>
                       ) : whatsappDelivery?.status === 'failed' ? (
                         <>
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600">
-                            WhatsApp delivery failed
+                            WhatsApp: Failed
                           </span>
+                          {whatsappDelivery.error_message && (
+                            <span className="w-full text-xs text-ink-muted">{whatsappDelivery.error_message}</span>
+                          )}
                           <button
                             type="button"
                             onClick={sendWhatsApp}
@@ -691,7 +842,14 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
               </h2>
               <div className="space-y-3">
                 {history.slice(0, 5).map((u) => (
-                  <div key={u.id} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card">
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => viewHistoryEntry(u)}
+                    className={`w-full rounded-2xl border bg-white p-4 text-left shadow-card transition-colors hover:border-brand-blue/40 focus-ring ${
+                      savedUpdate?.id === u.id ? 'border-brand-blue/50 ring-1 ring-brand-blue/15' : 'border-slate-200'
+                    }`}
+                  >
                     <div className="mb-1.5 flex items-center justify-between gap-3">
                       <span className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
                         {new Date(u.created_at).toLocaleString()}
@@ -705,7 +863,7 @@ export default function UpdateGenerator({ student }: UpdateGeneratorProps) {
                       </span>
                     </div>
                     <p className="line-clamp-2 text-sm text-ink-muted">{u.english_text}</p>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>

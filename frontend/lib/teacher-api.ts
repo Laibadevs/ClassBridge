@@ -43,9 +43,16 @@ export interface TeacherStudent {
   parent_name: string | null;
   parent_email: string | null;
   whatsapp_number: string | null;
+  /** Consent gate for Phase 4 WhatsApp sending — a phone number alone is
+   * never treated as consent. Only settable via updateStudent, never on
+   * create; new students default to false. */
+  whatsapp_opt_in: boolean;
+  whatsapp_opt_in_at: string | null;
   home_address: string | null;
   location: string | null;
   preferred_language: PreferredLanguage | null;
+  is_active: boolean;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
   parent_links: TeacherParentLink[];
@@ -72,15 +79,37 @@ export interface TeacherGrade {
   max_score: string;
   assessment_name: string | null;
   assessment_date: string;
+  notes: string | null;
   created_at: string;
 }
+
+export type NoteCategory = 'academic' | 'attendance' | 'behaviour' | 'participation' | 'general';
+
+export const NOTE_CATEGORIES: { value: NoteCategory; label: string }[] = [
+  { value: 'academic', label: 'Academic' },
+  { value: 'attendance', label: 'Attendance' },
+  { value: 'behaviour', label: 'Behaviour' },
+  { value: 'participation', label: 'Participation' },
+  { value: 'general', label: 'General' },
+];
 
 export interface TeacherNote {
   id: string;
   student_id: string;
   teacher_id: string;
   note: string;
+  /** Null for notes written before categories existed. */
+  category: NoteCategory | null;
+  /** The day the observation is about; null on older notes (use created_at). */
+  note_date: string | null;
   created_at: string;
+  updated_at: string;
+}
+
+export interface NoteInput {
+  note: string;
+  category?: NoteCategory | null;
+  note_date?: string | null;
 }
 
 export interface TeacherSubjectPerformance {
@@ -94,9 +123,19 @@ export interface TeacherRecentUpdate {
   created_at: string;
 }
 
+export interface TeacherTodayAttendance {
+  total_students: number;
+  present: number;
+  late: number;
+  absent: number;
+  marked: number;
+  attendance_rate: number | null;
+}
+
 export interface TeacherDashboardStats {
   subject_performance: TeacherSubjectPerformance[];
   recent_updates: TeacherRecentUpdate[];
+  today_attendance: TeacherTodayAttendance;
 }
 
 export interface CreateStudentInput {
@@ -165,8 +204,10 @@ export const teacherApi = {
   getDashboardStats: () => api.get<TeacherDashboardStats>('/api/teacher/dashboard-stats'),
   createStudent: (data: CreateStudentInput) => api.post<TeacherStudent>('/api/teacher/students', data),
   getStudent: (id: string) => api.get<TeacherStudent>(`/api/teacher/students/${id}`),
-  updateStudent: (id: string, data: Partial<Omit<CreateStudentInput, 'parent_email'>>) =>
-    api.patch<TeacherStudent>(`/api/teacher/students/${id}`, data),
+  updateStudent: (
+    id: string,
+    data: Partial<Omit<CreateStudentInput, 'parent_email'>> & { whatsapp_opt_in?: boolean }
+  ) => api.patch<TeacherStudent>(`/api/teacher/students/${id}`, data),
   deleteStudent: (id: string) => api.delete<void>(`/api/teacher/students/${id}`),
   linkParent: (studentId: string, data: { parent_email: string; relationship: GuardianRelationship }) =>
     api.post<TeacherParentLink>(`/api/teacher/students/${studentId}/link-parent`, data),
@@ -206,12 +247,39 @@ export const teacherApi = {
       max_score: number;
       assessment_name?: string | null;
       assessment_date: string;
+      notes?: string | null;
     }
   ) => api.post<TeacherGrade>(`/api/teacher/students/${studentId}/grades`, data),
+  updateGrade: (
+    studentId: string,
+    gradeId: string,
+    data: Partial<{
+      subject: string;
+      score: number;
+      max_score: number;
+      assessment_name: string | null;
+      assessment_date: string;
+      notes: string | null;
+    }>
+  ) => api.patch<TeacherGrade>(`/api/teacher/students/${studentId}/grades/${gradeId}`, data),
+  deleteGrade: (studentId: string, gradeId: string) =>
+    api.delete<void>(`/api/teacher/students/${studentId}/grades/${gradeId}`),
 
   listNotes: (studentId: string) => api.get<TeacherNote[]>(`/api/teacher/students/${studentId}/notes`),
-  addNote: (studentId: string, note: string) =>
-    api.post<TeacherNote>(`/api/teacher/students/${studentId}/notes`, { note }),
+  /** A plain string is still accepted (the Add Student flow). */
+  addNote: (studentId: string, input: string | NoteInput) =>
+    api.post<TeacherNote>(
+      `/api/teacher/students/${studentId}/notes`,
+      typeof input === 'string' ? { note: input } : input
+    ),
+  /** Only fields present in `input` change server-side — omit category to leave it as is. */
+  updateNote: (studentId: string, noteId: string, input: string | NoteInput) =>
+    api.patch<TeacherNote>(
+      `/api/teacher/students/${studentId}/notes/${noteId}`,
+      typeof input === 'string' ? { note: input } : input
+    ),
+  deleteNote: (studentId: string, noteId: string) =>
+    api.delete<void>(`/api/teacher/students/${studentId}/notes/${noteId}`),
 
   listAnnouncements: () => api.get<Announcement[]>('/api/teacher/announcements'),
   createAnnouncement: (data: AnnouncementCreateInput) =>

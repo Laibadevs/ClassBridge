@@ -22,6 +22,7 @@ export interface ParentChildLatestUpdate {
   english_text: string;
   roman_urdu_text: string;
   urdu_text: string | null;
+  home_actions: string[];
   created_at: string;
 }
 

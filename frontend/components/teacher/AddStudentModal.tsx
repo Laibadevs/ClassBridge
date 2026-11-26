@@ -107,6 +107,12 @@ export default function AddStudentModal({ open, onClose, onCreated, teacherName 
       setError('Please fill in all required fields.');
       return;
     }
+    // Matches the backend's E.164 check (see app.services.whatsapp.phone) so
+    // an obviously-local number is caught here instead of a round trip.
+    if (!/^\+[1-9]\d{7,14}$/.test(whatsappNumber.trim().replace(/[\s\-()]/g, ''))) {
+      setError('Enter a valid WhatsApp number in international format, e.g. +923001234567.');
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -380,7 +386,7 @@ export default function AddStudentModal({ open, onClose, onCreated, teacherName 
                 aria-busy={submitting}
                 className="rounded-full bg-brand-blue px-5 py-2.5 text-sm font-semibold text-white shadow-elevated transition-colors hover:bg-brand-blueDark focus-ring disabled:opacity-60"
               >
-                {submitting ? 'Saving…' : 'Add student'}
+                {submitting ? 'Adding student…' : 'Add student'}
               </button>
             </div>
           </form>

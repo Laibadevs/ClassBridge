@@ -1,5 +1,6 @@
 'use client';
 
+import AddNoteButton from './AddNoteButton';
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import Link from 'next/link';
 import TeacherShell from './TeacherShell';
@@ -14,7 +15,6 @@ import {
   TrendingUpIcon,
   AlertIcon,
   UserIcon,
-  NoteIcon,
   BarChartIcon,
   SparklesIcon,
 } from '@/components/icons';
@@ -106,8 +106,7 @@ function RowMenu({ student }: { student: DashboardStudent }) {
   const [open, setOpen] = useState(false);
   const items = [
     { label: 'View Profile', icon: UserIcon, href: `/teacher/student/${student.id}` },
-    { label: 'Add Note', icon: NoteIcon, href: `/teacher/student/${student.id}` },
-    { label: 'View Progress', icon: BarChartIcon, href: `/teacher/student/${student.id}` },
+    { label: 'View Progress', icon: BarChartIcon, href: `/teacher/progress?student=${student.id}` },
     { label: 'Generate Update', icon: SparklesIcon, href: `/teacher/student/${student.id}/generate-update` },
   ];
   return (
@@ -359,6 +358,7 @@ function StudentsContent({ students }: { students: DashboardStudent[] }) {
                     <td className="px-5 py-4 text-ink-muted">{s.lastUpdate}</td>
                     <td className="px-5 py-4">
                       <div className="flex items-center justify-end gap-1">
+                        <AddNoteButton student={{ id: s.id, name: s.name }} variant="compact" label="Add Note" />
                         <Link
                           href={`/teacher/student/${s.id}`}
                           className="inline-flex items-center gap-1 rounded-lg px-3 py-1.5 text-sm font-semibold text-brand-blue transition-colors hover:bg-blue-50 focus-ring"
@@ -405,12 +405,20 @@ function StudentsContent({ students }: { students: DashboardStudent[] }) {
                 <div className="mt-3">
                   <ProgressCell student={s} />
                 </div>
-                <Link
-                  href={`/teacher/student/${s.id}`}
-                  className="mt-4 flex w-full items-center justify-center gap-1 rounded-xl bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-blueDark focus-ring"
-                >
-                  View Student <ChevronRightIcon className="h-4 w-4" />
-                </Link>
+                <div className="mt-4 flex gap-2">
+                  <AddNoteButton
+                    student={{ id: s.id, name: s.name }}
+                    variant="compact"
+                    label="Add Note"
+                    className="min-h-[44px] flex-1 rounded-xl"
+                  />
+                  <Link
+                    href={`/teacher/student/${s.id}`}
+                    className="flex min-h-[44px] flex-1 items-center justify-center gap-1 rounded-xl bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-blueDark focus-ring"
+                  >
+                    View Student <ChevronRightIcon className="h-4 w-4" />
+                  </Link>
+                </div>
               </div>
             ))}
           </div>

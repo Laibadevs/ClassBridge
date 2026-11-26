@@ -33,6 +33,7 @@ export interface GeneratedUpdate {
   english_text: string;
   roman_urdu_text: string;
   urdu_text: string;
+  home_actions: string[];
 }
 
 export interface ParentUpdate {
@@ -42,6 +43,7 @@ export interface ParentUpdate {
   english_text: string;
   roman_urdu_text: string;
   urdu_text: string | null;
+  home_actions: string[];
   status: ParentUpdateStatus;
   ai_model: string | null;
   source_snapshot: Record<string, unknown> | null;
@@ -49,7 +51,30 @@ export interface ParentUpdate {
   updated_at: string;
 }
 
+/** One row of the teacher's cross-student Parent Updates list. */
+export interface TeacherUpdateListItem {
+  id: string;
+  student_id: string;
+  student_name: string;
+  preferred_language: 'english' | 'roman_urdu' | 'urdu' | null;
+  status: ParentUpdateStatus;
+  preview: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export const parentUpdateApi = {
+  /** Every update this teacher wrote (server-scoped to them), newest first.
+   * Filtering by student/status happens server-side; text search is done in
+   * the browser over this already-loaded list. */
+  listAll: (params: { studentId?: string; status?: ParentUpdateStatus } = {}) => {
+    const query = new URLSearchParams();
+    if (params.studentId) query.set('student_id', params.studentId);
+    if (params.status) query.set('status', params.status);
+    const qs = query.toString();
+    return api.get<TeacherUpdateListItem[]>(`/api/teacher/parent-updates${qs ? `?${qs}` : ''}`);
+  },
+
   /** Triggers AI generation from the student's real recorded data. No body —
    * the backend gathers attendance/grades/notes itself; nothing the teacher
    * types here is what the AI reads from. */
@@ -58,7 +83,13 @@ export const parentUpdateApi = {
 
   save: (
     studentId: string,
-    data: { english_text: string; roman_urdu_text: string; urdu_text: string; status?: ParentUpdateStatus }
+    data: {
+      english_text: string;
+      roman_urdu_text: string;
+      urdu_text: string;
+      home_actions: string[];
+      status?: ParentUpdateStatus;
+    }
   ) => api.post<ParentUpdate>(`/api/teacher/students/${studentId}/updates`, data),
 
   list: (studentId: string) => api.get<ParentUpdate[]>(`/api/teacher/students/${studentId}/updates`),
@@ -66,7 +97,13 @@ export const parentUpdateApi = {
   edit: (
     studentId: string,
     updateId: string,
-    data: Partial<{ english_text: string; roman_urdu_text: string; urdu_text: string; status: ParentUpdateStatus }>
+    data: Partial<{
+      english_text: string;
+      roman_urdu_text: string;
+      urdu_text: string;
+      home_actions: string[];
+      status: ParentUpdateStatus;
+    }>
   ) => api.patch<ParentUpdate>(`/api/teacher/students/${studentId}/updates/${updateId}`, data),
 
   /** The only action that makes an update visible to the linked parent.

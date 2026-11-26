@@ -52,12 +52,19 @@ export interface TeacherNote {
 }
 
 export interface AIUpdate {
+  /** Backend parent_update id — set for real data only (used to load the
+   * update's audio). Absent on the demo dataset, which has no audio. */
+  updateId?: string;
   studentId: string;
   englishSummary: string;
   romanUrduSummary: string;
   /** Real Urdu-script text — null for older records saved before this existed. */
   urduSummary: string | null;
+  /** Legacy single-action field, kept for the demo dataset in lib/mock-data.ts. */
   parentAction: string;
+  /** 2-4 practical "what can I do at home" actions — preferred over
+   * parentAction when present (real backend data always sets this). */
+  homeActions?: string[];
   whyThisMatters: string;
   createdAt: string;
 }
@@ -72,4 +79,20 @@ export interface StudentProfile {
   overallPerformance: number;
   status: StudentStatus;
   weakestSubject: SubjectScore;
+  /** Raw record fields the teacher detail page's Student/Parent Information
+   * cards and its Edit/Archive actions need — not derived from attendance/
+   * grades, and not meaningful for the parent-side profile or legacy demo
+   * data this same shape is reused for, so it's optional here. */
+  record?: {
+    rollNumber: string | null;
+    studentKey: string | null;
+    section: string | null;
+    gradeLevel: string | null;
+    parentName: string | null;
+    whatsappNumber: string | null;
+    whatsappOptIn: boolean;
+    homeAddress: string | null;
+    location: string | null;
+    isActive: boolean;
+  };
 }

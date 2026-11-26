@@ -23,6 +23,7 @@ import {
   AlertIcon,
 } from '@/components/icons';
 import TextToSpeechButton from '@/components/parent/TextToSpeechButton';
+import ParentAudioPlayer from '@/components/parent/ParentAudioPlayer';
 
 interface ParentDashboardProps {
   profile: StudentProfile;
@@ -155,6 +156,7 @@ function LatestUpdateCard({
             />
           </div>
           <p className="text-[1.05rem] leading-[1.9] text-ink">{update.englishSummary}</p>
+          <ParentAudioPlayer updateId={update.updateId} language="en" className="mt-3" />
         </div>
 
         <div className="border-t border-dashed border-slate-200 pt-6">
@@ -173,6 +175,7 @@ function LatestUpdateCard({
             />
           </div>
           <p className="text-[1.05rem] leading-[1.9] text-ink">{update.romanUrduSummary}</p>
+          <ParentAudioPlayer updateId={update.updateId} language="roman_urdu" className="mt-3" />
         </div>
 
         {update.urduSummary && (
@@ -203,16 +206,23 @@ function LatestUpdateCard({
   );
 }
 
-function WeekActionCard({ action }: { action: string }) {
+function WeekActionCard({ actions }: { actions: string[] }) {
   return (
     <div className="rounded-[20px] border border-brand-green/25 bg-emerald-50/70 p-6">
       <div className="flex items-center gap-2.5">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brand-green text-white">
           <CheckIcon className="h-5 w-5" />
         </span>
-        <h3 className="text-base font-bold text-brand-greenDark">What you can do this week</h3>
+        <h3 className="text-base font-bold text-brand-greenDark">What Can I Do at Home?</h3>
       </div>
-      <p className="mt-4 text-lg font-semibold leading-relaxed text-ink">{action}</p>
+      <ul className="mt-4 space-y-2.5">
+        {actions.map((action, i) => (
+          <li key={i} className="flex items-start gap-2.5 text-[1.05rem] font-semibold leading-relaxed text-ink">
+            <CheckIcon className="mt-1 h-4 w-4 shrink-0 text-brand-green" />
+            <span>{action}</span>
+          </li>
+        ))}
+      </ul>
       <p className="mt-3 text-sm leading-relaxed text-ink-muted">
         Small, regular practice can help build confidence.
       </p>
@@ -338,6 +348,13 @@ export default function ParentDashboard({ profile, update, monthNote, teacherNam
   const recent = buildRecentUpdates(subjects, update, weakestSubject);
   // Supportive framing: a child below the line is still making steady progress.
   const statusLabel = supportCount === 0 ? 'Doing well' : 'Steady progress';
+  // Real backend data always sets homeActions; parentAction is only ever
+  // populated by the legacy demo dataset in lib/mock-data.ts.
+  const homeActions = update?.homeActions?.length
+    ? update.homeActions
+    : update?.parentAction
+      ? [update.parentAction]
+      : [];
 
   return (
     <div className="space-y-8">
@@ -393,13 +410,13 @@ export default function ParentDashboard({ profile, update, monthNote, teacherNam
         {update ? (
           <div
             className={`grid grid-cols-1 gap-6 ${
-              update.parentAction || update.whyThisMatters ? 'xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]' : ''
+              homeActions.length || update.whyThisMatters ? 'xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]' : ''
             }`}
           >
             <LatestUpdateCard update={update} firstName={firstName} teacherName={teacherName} />
-            {(update.parentAction || update.whyThisMatters) && (
+            {(homeActions.length > 0 || update.whyThisMatters) && (
               <div className="space-y-6">
-                {update.parentAction && <WeekActionCard action={update.parentAction} />}
+                {homeActions.length > 0 && <WeekActionCard actions={homeActions} />}
                 {update.whyThisMatters && (
                   <div className="rounded-[20px] border border-slate-200 bg-white p-6 shadow-card">
                     <p className="text-sm font-semibold text-ink">Why this helps</p>

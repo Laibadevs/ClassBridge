@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import AddNoteButton from './AddNoteButton';
 import { SearchIcon, ChevronRightIcon } from '@/components/icons';
 import { toDashboardStudent, type DashboardStudent, type StudentStatus } from '@/lib/teacher-dashboard-data';
 import { teacherApi } from '@/lib/teacher-api';
@@ -161,12 +162,15 @@ export default function StudentDirectory({ refreshKey }: { refreshKey?: number }
                       <StatusBadge status={s.status} />
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <Link
-                        href={`/teacher/student/${s.id}`}
-                        className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand-blue transition-colors hover:bg-blue-50 focus-ring"
-                      >
-                        View <ChevronRightIcon className="h-4 w-4" />
-                      </Link>
+                      <div className="flex items-center justify-end gap-2">
+                        <AddNoteButton student={{ id: s.id, name: s.name }} variant="compact" label="Add Note" />
+                        <Link
+                          href={`/teacher/student/${s.id}`}
+                          className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand-blue transition-colors hover:bg-blue-50 focus-ring"
+                        >
+                          View <ChevronRightIcon className="h-4 w-4" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -207,12 +211,20 @@ export default function StudentDirectory({ refreshKey }: { refreshKey?: number }
                     <p className={`font-semibold ${progressClasses(s.progress)}`}>{s.progress}</p>
                   </div>
                 </div>
-                <Link
-                  href={`/teacher/student/${s.id}`}
-                  className="mt-4 flex w-full items-center justify-center gap-1 rounded-xl bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-blueDark focus-ring"
-                >
-                  View student <ChevronRightIcon className="h-4 w-4" />
-                </Link>
+                <div className="mt-4 flex gap-2">
+                  <AddNoteButton
+                    student={{ id: s.id, name: s.name }}
+                    variant="compact"
+                    label="Add Note"
+                    className="min-h-[44px] flex-1 rounded-xl"
+                  />
+                  <Link
+                    href={`/teacher/student/${s.id}`}
+                    className="flex min-h-[44px] flex-1 items-center justify-center gap-1 rounded-xl bg-brand-blue px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-blueDark focus-ring"
+                  >
+                    View student <ChevronRightIcon className="h-4 w-4" />
+                  </Link>
+                </div>
               </div>
             ))}
             {rows.length === 0 && (

@@ -78,11 +78,13 @@ export function toStudentProfile(child: ParentChildDetail): StudentProfile {
 export function toAIUpdate(update: ParentChildLatestUpdate | null): AIUpdate | null {
   if (!update) return null;
   return {
+    updateId: update.id,
     studentId: '',
     englishSummary: update.english_text,
     romanUrduSummary: update.roman_urdu_text,
     urduSummary: update.urdu_text,
     parentAction: '',
+    homeActions: update.home_actions,
     whyThisMatters: '',
     createdAt: update.created_at,
   };

@@ -13,6 +13,15 @@ interface StudentRecord {
   full_name: string;
   class_name: string | null;
   grade_level: string | null;
+  roll_number: string | null;
+  student_key: string | null;
+  section: string | null;
+  parent_name: string | null;
+  whatsapp_number: string | null;
+  whatsapp_opt_in: boolean;
+  home_address: string | null;
+  location: string | null;
+  is_active: boolean;
 }
 
 interface AttendanceRecord {
@@ -122,5 +131,17 @@ export async function getTeacherStudentProfile(id: string): Promise<StudentProfi
     overallPerformance,
     status,
     weakestSubject,
+    record: {
+      rollNumber: student.roll_number,
+      studentKey: student.student_key,
+      section: student.section,
+      gradeLevel: student.grade_level,
+      parentName: student.parent_name,
+      whatsappNumber: student.whatsapp_number,
+      whatsappOptIn: student.whatsapp_opt_in,
+      homeAddress: student.home_address,
+      location: student.location,
+      isActive: student.is_active,
+    },
   };
 }

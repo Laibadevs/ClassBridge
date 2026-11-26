@@ -1,17 +1,12 @@
 import TeacherShell from '@/components/teacher/TeacherShell';
-import ComingSoonPage from '@/components/teacher/ComingSoonPage';
-import { BarChartIcon } from '@/components/icons';
+import TeacherProgress from '@/components/teacher/TeacherProgress';
 import { requireRole } from '@/lib/auth/server';
 
-export default async function TeacherProgressPage() {
+export default async function TeacherProgressPage({ searchParams }: { searchParams: { student?: string } }) {
   const user = await requireRole('teacher');
   return (
     <TeacherShell userName={user.name}>
-      <ComingSoonPage
-        icon={BarChartIcon}
-        title="Progress Reports"
-        description="Class-wide progress reports across subjects and terms are on the way."
-      />
+      <TeacherProgress teacherName={user.name} initialStudentId={searchParams.student} />
     </TeacherShell>
   );
 }
